@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="${1:-$HOME/git/Workspaces}"
+ROOT="${WORKSPACES_ROOT:-$HOME/git/Workspaces}"
 
 MODE="dry-run"          # dry-run | apply
 DO_RENORMALIZE="no"     # yes | no

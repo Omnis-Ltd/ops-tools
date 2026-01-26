@@ -10,7 +10,18 @@ repo-health:
 	@./scripts/maintenance/repo-health.sh
 
 normalize-eol-dry:
-	@./scripts/maintenance/normalize-eol-batch.sh --dry-run
+	@WORKSPACES_ROOT="$(HOME)/git/Workspaces" \
+	./scripts/maintenance/normalize-eol-batch.sh --dry-run
 
 normalize-eol-apply:
-	@./scripts/maintenance/normalize-eol-batch.sh --apply --renormalize --commit --skip-dirty
+	@WORKSPACES_ROOT="$(HOME)/git/Workspaces" \
+	./scripts/maintenance/normalize-eol-batch.sh --apply --renormalize --commit --skip-dirty
+
+.PHONY: maintenance-normalize-eol-dry maintenance-normalize-eol-apply
+
+maintenance-normalize-eol-dry:
+	@MAINT_TASK=normalize-eol MODE=dry ./scripts/maintenance/run-maintenance.sh
+
+maintenance-normalize-eol-apply:
+	@MAINT_TASK=normalize-eol MODE=apply ./scripts/maintenance/run-maintenance.sh
+
