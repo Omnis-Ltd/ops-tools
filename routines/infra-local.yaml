@@ -1,0 +1,28 @@
+id: infra-local
+repo: infra-local
+type: infrastructure
+version: 1
+
+routines:
+  - id: secret-scan
+    status: active
+    frequency: weekly
+    description: Check for accidental secret exposure in infra repo.
+    guardrails:
+      manual_confirmation: true
+    commands: []
+
+  - id: drift-check
+    status: proposed
+    frequency: monthly
+    description: Detect configuration drift vs intended state (tooling depends on stack).
+    commands: []
+
+  - id: docker-hygiene
+    status: proposed
+    frequency: bi-weekly
+    description: Controlled cleanup and sanity checks around local Docker resources.
+    guardrails:
+      destructive_requires_manual_confirmation: true
+    commands: []
+

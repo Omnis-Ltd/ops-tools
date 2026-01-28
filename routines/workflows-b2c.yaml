@@ -1,0 +1,26 @@
+id: workflows-b2c
+repo: workflows-b2c
+type: automation
+version: 1
+
+routines:
+  - id: workflow-validation
+    status: proposed
+    frequency: weekly
+    description: Validate workflow definitions (lint/format) and critical path sanity checks.
+    commands: []
+
+  - id: secret-scan
+    status: active
+    frequency: weekly
+    description: Check for leaked credentials in workflow definitions.
+    guardrails:
+      manual_confirmation: true
+    commands: []
+
+  - id: change-review
+    status: active
+    frequency: on-change
+    description: Ensure PR checklist is followed for workflow changes.
+    commands: []
+

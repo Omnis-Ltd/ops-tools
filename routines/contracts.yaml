@@ -1,0 +1,24 @@
+id: contracts
+repo: contracts
+type: governance
+version: 1
+
+routines:
+  - id: contracts-lint
+    status: proposed
+    frequency: on-change
+    description: Validate contract files format/consistency when contracts change.
+    commands: []
+
+  - id: versioning-check
+    status: proposed
+    frequency: on-change
+    description: Ensure semantic versioning policy and changelog discipline.
+    commands: []
+
+  - id: repo-hygiene
+    status: active
+    frequency: weekly
+    description: Ensure repo stays clean (no large diffs, no accidental binary commits).
+    commands: []
+

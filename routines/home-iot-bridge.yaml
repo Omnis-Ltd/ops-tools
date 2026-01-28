@@ -1,0 +1,26 @@
+id: home-iot-bridge
+repo: home-iot-bridge
+type: iot
+version: 1
+
+routines:
+  - id: config-hardening
+    status: proposed
+    frequency: monthly
+    description: Review configs for least privilege, network exposure, and defaults.
+    commands: []
+
+  - id: secret-scan
+    status: active
+    frequency: weekly
+    description: Lightweight secret exposure check (IoT configs often leak).
+    guardrails:
+      manual_confirmation: true
+    commands: []
+
+  - id: dependency-audit
+    status: proposed
+    frequency: monthly
+    description: Dependency checks based on detected ecosystem.
+    commands: []
+

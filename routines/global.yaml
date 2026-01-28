@@ -1,0 +1,42 @@
+id: global
+scope: all
+version: 1
+defaults:
+  timezone: local
+  policy:
+    safe_by_default: true
+    destructive_requires_manual_confirmation: true
+
+routines:
+  - id: repo-health
+    status: active
+    frequency: daily
+    description: Quick repo hygiene scan (dirty state, branch info, basic health signals).
+    outputs:
+      - executive_brief_signal: repo_status
+    commands:
+      - "./scripts/maintenance/repo-health.sh"
+
+  - id: secret-scan-light
+    status: active
+    frequency: weekly
+    description: Lightweight secret exposure check (best-effort).
+    guardrails:
+      manual_confirmation: true
+    commands: []
+
+  - id: dependency-audit
+    status: proposed
+    frequency: monthly
+    description: Audit dependencies (language-specific; enabled when capability detected).
+    commands: []
+
+  - id: normalize-eol
+    status: active
+    frequency: on-change
+    description: Ensure consistent LF endings; mainly after repo imports or cross-OS work.
+    guardrails:
+      manual_confirmation: true
+    commands:
+      - "MAINT_TASK=normalize-eol MODE=dry ./scripts/maintenance/run-maintenance.sh"
+

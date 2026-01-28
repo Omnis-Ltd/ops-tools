@@ -1,0 +1,26 @@
+id: personal-tech-board
+repo: personal-tech-board
+type: orchestration
+version: 1
+
+routines:
+  - id: notion-consistency
+    status: proposed
+    frequency: monthly
+    description: Check Notion schema integrity (relations/rollups/views) and IDs validity.
+    commands: []
+
+  - id: secret-expiry-check
+    status: proposed
+    frequency: monthly
+    description: Review tokens/keys hygiene and rotation reminders (manual for now).
+    guardrails:
+      manual_confirmation: true
+    commands: []
+
+  - id: routine-integrity
+    status: active
+    frequency: weekly
+    description: Ensure daily routine still runs and outputs are generated as expected.
+    commands: []
+
