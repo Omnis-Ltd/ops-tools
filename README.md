@@ -4,6 +4,70 @@ IT Maintenance & Ops — scripts, workflows, and automation for managing multipl
 
 ---
 
+his repository contains reusable, non-destructive-by-default tools to:
+- run maintenance tasks across multiple repositories,
+- produce auditable reports (JSON / Markdown),
+- publish maintenance results into Notion databases,
+- serve as the operational backbone for higher-level orchestration (e.g. personal-tech-board).
+
+This repo is designed to be:
+- safe by default (dry-run first),
+- traceable (logs, reports, Notion),
+- automation-ready (Claude, cron, n8n).
+
+---
+
+## Scope
+
+`ops-tools` focuses on execution, not planning.
+
+It does not:
+- decide priorities,
+- manage backlog items,
+- generate executive summaries.
+
+---
+
+## Repository structure
+
+```
+ops-tools/
+├── scripts/
+│   ├── maintenance/
+│   ├── notion/
+│   └── ops/
+├── routines/
+├── runbooks/
+├── docs/
+│   └── notion/
+│       ├── templates/
+│       ├── exports/
+│       └── pages/
+├── logs/
+│   └── maintenance/
+├── reports/
+├── .claude/
+│   └── commands/
+└── README.md
+```
+---
+
+## Core concepts
+
+### Maintenance lifecycle
+1. Dry-run
+2. Apply (explicit)
+3. Report (JSON + Markdown)
+4. Publish to Notion (optional, non-blocking)
+
+### Routines
+Declarative YAML files describing maintenance intent.
+
+### Notion integration
+Used as an audit log and navigation layer, never as a source of truth.
+
+---
+
 ## Quickstart
 
 ### Prerequisites
@@ -72,9 +136,11 @@ export PYTHON_BIN=python                         # or python3
 Configure in your `.env` or export before running:
 
 ```bash
-export NOTION_API_KEY="secret_..."
-export NOTION_MAINTENANCE_DB_ID="..."
-export NOTION_BACKLOG_DB_ID="..."
+export REPOS_ROOT=~/git/Workspaces
+export OPS_TOOLS_PATH=~/git/Workspaces/ops-tools
+export NOTION_API_KEY=secret_...
+export NOTION_MAINTENANCE_DB_ID=...
+export NOTION_REPOS_DB_ID=...
 ```
 
 ### Notion database schema (Maintenance)
@@ -117,6 +183,9 @@ Standard flow: **dry → review → apply → push to Notion DB**
 │     the report is pushed to your Notion database.               │
 └─────────────────────────────────────────────────────────────────┘
 ```
+Refresh repos cache:
+```
+python scripts/notion/build_repos_map.py
 
 ### Output structure
 
@@ -148,6 +217,13 @@ Custom Claude Code commands in `.claude/commands/`:
 - Store sensitive values in environment variables only
 
 ---
+
+## Design principles
+- Explicit over implicit
+- Dry-run first
+- Non-blocking integrations
+- Git is the source of truth
+- Notion is a projection
 
 ## License
 

@@ -20,4 +20,5 @@ for repo in "${REPOS[@]}"; do
     dirty="$(git status --porcelain | wc -l | tr -d ' ')"
     echo "  branch: $branch | dirty entries: $dirty"
   })
+ # echo "$REPO_SLUG" >> "$REPOS_LIST_PATH"
 done

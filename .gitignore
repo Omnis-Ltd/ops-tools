@@ -4,8 +4,11 @@
 !.env.example
 
 # Generated outputs
+docs/notion/exports/
 logs/
 reports/
+.cache/
+
 
 # Python
 __pycache__/

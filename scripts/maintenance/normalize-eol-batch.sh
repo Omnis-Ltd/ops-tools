@@ -93,8 +93,24 @@ repo_is_dirty() {
   (cd "$repo" && ! git diff --quiet || ! git diff --cached --quiet || [[ -n "$(git status --porcelain)" ]])
 }
 
+repo_relpath() {
+  local abs="$1"
+  local root="$2"
+  # remove "$root/" prefix if present
+  abs="${abs%/}"
+  root="${root%/}"
+  if [[ "$abs" == "$root"* ]]; then
+    local rel="${abs#"$root"/}"
+    echo "$rel"
+  else
+    echo "$abs"
+  fi
+}
+
 for repo in "${REPOS[@]}"; do
-  echo "Repo: $repo"
+  #echo "Repo: $repo"
+  REL="$(repo_relpath "$repo" "$ROOT")"
+  echo "Repo: $REL"
   if [[ ! -d "$repo/.git" ]]; then
     echo "  - SKIP: .git manquant (repo non standard?)"
     echo
@@ -156,7 +172,7 @@ for repo in "${REPOS[@]}"; do
   else
     echo "  - DRY-RUN: aucune écriture/commande git exécutée"
   fi
-
+  #echo "$REPO_SLUG" >> "$REPOS_LIST_PATH"
   echo
 done
 
