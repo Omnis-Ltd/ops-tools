@@ -8,7 +8,11 @@ DO_RENORMALIZE="no"     # yes | no
 DO_COMMIT="no"          # yes | no
 SKIP_DIRTY="no"         # yes | no
 
-shift || true
+# Skip positional ROOT arg if provided (non-flag first argument)
+if [[ $# -gt 0 && "$1" != --* ]]; then
+  ROOT="$1"
+  shift
+fi
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
