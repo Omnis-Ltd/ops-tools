@@ -342,7 +342,6 @@ if ($Mode -eq "replace") {
 foreach ($c in $chunks) {
   $appendUrl = "https://api.notion.com/v1/blocks/$pageId/children"
   $appendBody = @{ children = $c } | ConvertTo-Json -Depth 12 -Compress
-  if ($chunks.IndexOf($c) -eq 0) {   [System.IO.File]::WriteAllText("C:\Users\delfa\debug-chunk0.json", $appendBody, [System.Text.Encoding]::UTF8) }
   $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($appendBody)
   try {
     Invoke-RestMethod -Method Patch -Uri $appendUrl -Headers $headers -Body $bodyBytes | Out-Null
