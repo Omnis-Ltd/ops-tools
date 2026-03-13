@@ -152,7 +152,7 @@ function Parse_Inline([string]$line) {
 }
 
 # --- Markdown -> Blocks (improved) ---
-$lines = $md -split "(`r`n|`n|`r)"
+$lines = $md -split "`r`n|`n|`r"
 $blocks = New-Object System.Collections.Generic.List[object]
 
 # Put hash marker first (so we can detect idempotence next time)
@@ -165,6 +165,31 @@ $blocks.Add(@{
 $inCode = $false
 $codeLang = ""
 $codeBuf = New-Object System.Collections.Generic.List[string]
+$inTable   = $false
+$tableRows = New-Object System.Collections.Generic.List[object]
+$tableWidth = 0
+
+function Flush-Table {
+  if ($script:tableRows.Count -gt 0) {
+    $tw = if ($script:tableWidth -gt 0) { $script:tableWidth } else { 1 }
+    $rowsSnap = $script:tableRows.ToArray()
+    $tblBlock = @{
+      object = "block"
+      type   = "table"
+      table  = @{
+        table_width       = $tw
+        has_column_header = $true
+        has_row_header    = $false
+        children          = $rowsSnap
+      }
+    }
+    $script:blocks.Add($tblBlock) | Out-Null
+    $script:tableRows.Clear()
+    $script:tableWidth = 0
+  }
+  $script:inTable = $false
+}
+
 
 foreach ($raw in $lines) {
   $line = $raw.TrimEnd()
@@ -197,7 +222,32 @@ foreach ($raw in $lines) {
     continue
   }
 
+  # flush table when leaving table context (non-table line or blank)
+  if ($inTable -and $line -notmatch '^\s*\|') { Flush-Table }
+
   if ($line.Trim() -eq "") { continue }
+
+  # --- table row ---
+  if ($line -match '^\s*\|') {
+    # separator row (|---|---) → skip, end of header
+    if ($line -match '^\s*\|[\s\-\|:]+\|?\s*$') {
+      $inTable = $true
+      continue
+    }
+    $rawCells = ($line.Trim() -replace '^\|','' -replace '\|$','') -split '\|' | ForEach-Object { $_.Trim() }
+    if ($rawCells.Count -gt $tableWidth) { $tableWidth = $rawCells.Count }
+    # Build cell arrays without PS flattening: each cell = [object[]] array of rich-text nodes
+    $cellList = New-Object 'System.Collections.Generic.List[System.Object]'
+    foreach ($ct in $rawCells) {
+      $cellList.Add([System.Object[]]@(@{ type="text"; text=@{ content=$ct } })) | Out-Null
+    }
+    $tableRows.Add(@{
+      type      = "table_row"
+      table_row = @{ cells = $cellList.ToArray() }
+    }) | Out-Null
+    $inTable = $true
+    continue
+  }
 
   # horizontal rule
   if ($line -match '^\s*(---|\*\*\*|___)\s*$') {
@@ -263,6 +313,9 @@ foreach ($raw in $lines) {
   })
 }
 
+# flush table at end of file (if markdown ends with a table)
+if ($inTable) { Flush-Table }
+
 # --- Chunking (100 max) ---
 $chunkSize = 100
 $chunks = @()
@@ -289,6 +342,7 @@ if ($Mode -eq "replace") {
 foreach ($c in $chunks) {
   $appendUrl = "https://api.notion.com/v1/blocks/$pageId/children"
   $appendBody = @{ children = $c } | ConvertTo-Json -Depth 12 -Compress
+  if ($chunks.IndexOf($c) -eq 0) {   [System.IO.File]::WriteAllText("C:\Users\delfa\debug-chunk0.json", $appendBody, [System.Text.Encoding]::UTF8) }
   $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($appendBody)
   try {
     Invoke-RestMethod -Method Patch -Uri $appendUrl -Headers $headers -Body $bodyBytes | Out-Null
