@@ -25,9 +25,14 @@ Agent SSH Windows : `Start-Service ssh-agent` puis `ssh-add ~/.ssh/omnis.key`
 ### Étape 1 — Audit local
 
 ```powershell
+# Versions Docker disponibles
 .\ops-tools\infra\audit-images.ps1
 # Avec pull des nouvelles images :
 .\ops-tools\infra\audit-images.ps1 -Pull
+
+# Coherence .env / environment: du compose (evite les vars manquantes en container)
+.\ops-tools\infra\audit-env-compose.ps1 -Service n8n
+.\ops-tools\infra\audit-env-compose.ps1           # tous les services
 ```
 
 ### Étape 2 — Mettre à jour les compose files
