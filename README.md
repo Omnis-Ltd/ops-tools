@@ -1,6 +1,6 @@
 # ops-tools
 
-IT Maintenance & Ops — scripts, workflows, and automation for managing multiple repositories.
+IT Maintenance & Ops : scripts, workflows, and automation for managing multiple repositories.
 
 ---
 
@@ -212,7 +212,8 @@ Custom Claude Code commands in `.claude/commands/`:
 
 ## Security
 
-- **Never commit secrets** — `.env` files are gitignored
+- **Never commit secrets** : `.env` files are gitignored (`.env`, `.env.*`, `*.env`, minus explicit allowlist entries in `.gitignore`)
+- **CI gitleaks scan** : `.github/workflows/gitleaks.yml` runs `gitleaks detect` (history + working tree) on every push/PR to `main`, pinned to v8.30.1 for reproducibility
 - **Check before push**: `git grep -nE "(NOTION_API_KEY=|Bearer |sk-|api[_-]?key|token)"`
 - Store sensitive values in environment variables only
 
