@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Local Claude Code permissions (machine-specific, not shared)
+.claude/settings.local.json
+
 # Generated outputs
 docs/notion/exports/
 logs/
