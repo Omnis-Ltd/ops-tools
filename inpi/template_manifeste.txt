@@ -1,0 +1,69 @@
+================================================================================
+          {{PROJECT_NAME}} -- MANIFESTE DE DEPOT INPI (E-SOLEAU)
+================================================================================
+
+DATE DU DEPOT        : {{DATE}}
+TITULAIRE DES DROITS : {{OWNER}}
+EMAIL CONTACT        : {{EMAIL}}
+COMMIT GIT           : {{COMMIT}}
+ARCHIVE SCELLÉE      : {{ARCHIVE_NAME}}
+SHA256               : (voir section 4 apres generation)
+
+--------------------------------------------------------------------------------
+1. PERIMETRE DE PROPRIETE INTELLECTUELLE REVENDIQUE
+--------------------------------------------------------------------------------
+
+[A remplir par l'auteur ou via /inpi dans Claude Code]
+
+Composant A -- [Nom du composant]
+  - Description du composant A
+  - Fichiers : [liste]
+
+Composant B -- [Nom du composant]
+  - Description du composant B
+  - Fichiers : [liste]
+
+--------------------------------------------------------------------------------
+2. ELEMENTS EXCLUS DU PERIMETRE PI
+--------------------------------------------------------------------------------
+
+  - Dependances tierces open source (node_modules, packages PyPI)
+  - Images / visuels dont les droits appartiennent a des tiers
+  - Contenu genere (articles, rapports) -- pas du code source
+  - Livrables specifiques clients (carve-out contractuel)
+
+--------------------------------------------------------------------------------
+3. COMMANDE DE GENERATION DE L'ARCHIVE
+--------------------------------------------------------------------------------
+
+  powershell -File <workspace>/ops-tools/inpi/generate_archive.ps1 `
+    -ProjectName "{{PROJECT_NAME}}" `
+    -Owner "{{OWNER}}" `
+    -Email "{{EMAIL}}"
+
+Proprietes garanties par git archive :
+  - Exclusion stricte de .git, node_modules, .env
+  - Inclusion du fichier LICENSE.md
+
+--------------------------------------------------------------------------------
+4. NUMERO DE DEPOT INPI (a completer apres soumission)
+--------------------------------------------------------------------------------
+
+  Numero de dossier : DSO_________________________
+  Date de reception : ___________________________
+  SHA256 archive    : ___________________________
+
+  --> Ajouter ce numero dans /mentions-legales une fois obtenu.
+
+--------------------------------------------------------------------------------
+5. PREUVES D'ANTERIORITE COMPLEMENTAIRES
+--------------------------------------------------------------------------------
+
+  - Historique git : commits horodates depuis la creation du projet
+  - Deploiements production : logs horodates
+  - Factures API (LLM, cloud) : preuves d'usage reel
+
+================================================================================
+Fait pour valoir ce que de droit.
+{{OWNER}} -- {{EMAIL}}
+================================================================================
