@@ -3,6 +3,11 @@
 # Usage: & ".\scripts\ops\doctor.ps1"  (depuis ops-tools/)
 #    ou: make doctor
 
+# IMPORTANT : ce fichier doit conserver son BOM UTF-8. Sans BOM, Windows
+# PowerShell 5.1 lit le fichier avec l'encodage systeme (cp1252) au lieu
+# d'UTF-8, ce qui corrompt les caracteres non-ASCII (emoji, accents) et
+# casse le parsing de tout le script, pas seulement la ligne concernee.
+
 param(
     [string]$WorkspacesRoot = $(if ($env:WORKSPACES_ROOT) { $env:WORKSPACES_ROOT } else { Join-Path $env:USERPROFILE "git\Workspaces" })
 )
