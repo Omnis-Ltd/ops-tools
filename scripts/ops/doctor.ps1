@@ -13,6 +13,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OpsToolsRoot = Join-Path $WorkspacesRoot "ops-tools"
 
 $script:findings = @()
@@ -319,6 +320,10 @@ foreach ($f in ($findings | Sort-Object Severity, Category)) {
 }
 $md += ""
 $md += "**Score:** PASS=$($scores.pass) WARN=$($scores.warn) FAIL=$($scores.fail)"
+$outDir = Split-Path -Parent $outFile
+if (-not (Test-Path $outDir)) {
+    New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+}
 $md -join "`n" | Set-Content $outFile -Encoding UTF8
 Write-Host "`nRapport: $outFile" -ForegroundColor Green
 
