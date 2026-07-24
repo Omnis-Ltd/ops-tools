@@ -127,7 +127,49 @@ try {
 # --- Section Env ---
 Write-Host "`n--- Env ---" -ForegroundColor Yellow
 try {
-    # Remplie par Task 4
+    $envTargets = @(
+        @{ Name = "harness"; Path = "harness" },
+        @{ Name = "Infra/infra-local"; Path = "Infra\infra-local" },
+        @{ Name = "Infra/infra-prod"; Path = "Infra\infra-prod" },
+        @{ Name = "Interface/frontend-astro"; Path = "Interface\frontend-astro" },
+        @{ Name = "my-curriculum"; Path = "my-curriculum" },
+        @{ Name = "ops-tools"; Path = "ops-tools" },
+        @{ Name = "personal-tech-board"; Path = "personal-tech-board" }
+    )
+
+    foreach ($target in $envTargets) {
+        $repoPath = Join-Path $WorkspacesRoot $target.Path
+        $examplePath = Join-Path $repoPath ".env.example"
+        $envPath = Join-Path $repoPath ".env"
+
+        if (-not (Test-Path $examplePath)) {
+            Add-Finding "warn" "env" "$($target.Name) : .env.example absent"
+            continue
+        }
+
+        $exampleKeys = @(Get-Content $examplePath | ForEach-Object {
+            if ($_ -match '^([A-Z0-9_]+)=') { $Matches[1] }
+        } | Where-Object { $_ })
+
+        if (-not (Test-Path $envPath)) {
+            Add-Finding "fail" "env" "$($target.Name) : .env absent ($($exampleKeys.Count) cles attendues)"
+            continue
+        }
+
+        $envKeys = @(Get-Content $envPath | ForEach-Object {
+            if ($_ -match '^([A-Z0-9_]+)=') { $Matches[1] }
+        } | Where-Object { $_ })
+
+        $missingKeys = $exampleKeys | Where-Object { $_ -notin $envKeys }
+
+        if ($missingKeys.Count -eq 0) {
+            Add-Finding "pass" "env" "$($target.Name) : .env complet ($($exampleKeys.Count) cles)"
+        } else {
+            foreach ($key in $missingKeys) {
+                Add-Finding "warn" "env" "$($target.Name) : cle manquante dans .env : $key"
+            }
+        }
+    }
 } catch {
     Add-Finding "fail" "env" "Section env : erreur inattendue ($($_.Exception.Message))"
 }
