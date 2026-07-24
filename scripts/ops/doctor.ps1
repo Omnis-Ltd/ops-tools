@@ -78,7 +78,48 @@ try {
 # --- Section MCP ---
 Write-Host "`n--- MCP ---" -ForegroundColor Yellow
 try {
-    # Remplie par Task 3
+    $mcpServerRoot = Join-Path $WorkspacesRoot "harness\mcp-server"
+    $distIndex = Join-Path $mcpServerRoot "dist\index.js"
+    $srcDir = Join-Path $mcpServerRoot "src"
+
+    if (-not (Test-Path $distIndex)) {
+        Add-Finding "warn" "mcp" "harness : dist/index.js absent (build jamais lance)"
+    } else {
+        $distTime = (Get-Item $distIndex).LastWriteTimeUtc
+        $srcFiles = Get-ChildItem -Path $srcDir -Recurse -File -ErrorAction SilentlyContinue
+        $newestSrcTime = ($srcFiles | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1).LastWriteTimeUtc
+        if ($newestSrcTime -and $newestSrcTime -gt $distTime) {
+            Add-Finding "warn" "mcp" "harness : build obsolete (dist/ plus ancien que src/)"
+        } else {
+            Add-Finding "pass" "mcp" "harness : build a jour (dist/index.js)"
+        }
+    }
+
+    $cursorMcpJson = Join-Path $WorkspacesRoot "harness\.cursor\mcp.json"
+    if (Test-Path $cursorMcpJson) {
+        $mcpConfig = Get-Content $cursorMcpJson -Raw | ConvertFrom-Json
+        $harnessServer = $mcpConfig.mcpServers.harness
+        $referencedPath = $null
+        if ($harnessServer) {
+            $referencedPath = $harnessServer.args | Where-Object { $_ -match "index\.js$" } | Select-Object -First 1
+        }
+        if ($referencedPath -and (Test-Path $referencedPath)) {
+            Add-Finding "pass" "mcp" "harness : mcp.json pointe vers un dist/index.js existant ($referencedPath)"
+        } elseif ($referencedPath) {
+            Add-Finding "warn" "mcp" "harness : mcp.json pointe vers un chemin introuvable ($referencedPath)"
+        } else {
+            Add-Finding "warn" "mcp" "harness : mcp.json ne reference pas index.js pour le serveur harness"
+        }
+    } else {
+        Add-Finding "warn" "mcp" "harness/.cursor/mcp.json absent"
+    }
+
+    $lastActivity = & git -C $mcpServerRoot log -1 --format=%cd -- . 2>$null
+    if ($lastActivity) {
+        Add-Finding "pass" "mcp" "harness : derniere activite $lastActivity"
+    } else {
+        Add-Finding "warn" "mcp" "harness : aucun historique git trouve pour mcp-server/"
+    }
 } catch {
     Add-Finding "fail" "mcp" "Section mcp : erreur inattendue ($($_.Exception.Message))"
 }
