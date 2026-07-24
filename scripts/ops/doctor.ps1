@@ -90,7 +90,8 @@ function Get-BacklogTableProgress {
 # --- Section Infra ---
 Write-Host "--- Infra ---" -ForegroundColor Yellow
 try {
-    $sshExe = "C:\Windows\System32\OpenSSH\ssh.exe"
+    $system32 = if ([Environment]::Is64BitProcess) { "$env:WINDIR\System32" } else { "$env:WINDIR\Sysnative" }
+    $sshExe = Join-Path $system32 "OpenSSH\ssh.exe"
     $dockerCmd = "docker ps --filter network=seo-prod-network --format '{{json .}}'"
     $sshOutput = & $sshExe -o BatchMode=yes -o ConnectTimeout=5 seo-prod $dockerCmd
     $sshExitCode = $LASTEXITCODE
