@@ -7,7 +7,7 @@ param(
     [string]$WorkspacesRoot = $(if ($env:WORKSPACES_ROOT) { $env:WORKSPACES_ROOT } else { Join-Path $env:USERPROFILE "git\Workspaces" })
 )
 
-$ErrorActionPreference = "Continue"
+$ErrorActionPreference = "Stop"
 $OpsToolsRoot = Join-Path $WorkspacesRoot "ops-tools"
 
 $script:findings = @()
