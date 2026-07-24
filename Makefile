@@ -1,10 +1,11 @@
-.PHONY: help repo-health normalize-eol-dry normalize-eol-apply
+.PHONY: help repo-health normalize-eol-dry normalize-eol-apply doctor
 
 help:
 	@echo "Targets:"
 	@echo "  repo-health           - Diagnostic rapide des repos"
 	@echo "  normalize-eol-dry     - Dry-run normalisation LF"
 	@echo "  normalize-eol-apply   - Apply + renormalize + commit (skip dirty)"
+	@echo "  doctor                - Preflight check ecosysteme (infra/mcp/env/backlogs)"
 
 repo-health:
 	@./scripts/maintenance/repo-health.sh
@@ -16,6 +17,9 @@ normalize-eol-dry:
 normalize-eol-apply:
 	@WORKSPACES_ROOT="$(HOME)/git/Workspaces" \
 	./scripts/maintenance/normalize-eol-batch.sh --apply --renormalize --commit --skip-dirty
+
+doctor:
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ops/doctor.ps1
 
 .PHONY: maintenance-normalize-eol-dry maintenance-normalize-eol-apply
 
