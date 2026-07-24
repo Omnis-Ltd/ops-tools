@@ -30,7 +30,47 @@ if (Test-Path $WorkspacesRoot) {
 # --- Section Infra ---
 Write-Host "--- Infra ---" -ForegroundColor Yellow
 try {
-    # Remplie par Task 2
+    $sshExe = "C:\Windows\System32\OpenSSH\ssh.exe"
+    $dockerCmd = "docker ps --filter network=seo-prod-network --format '{{json .}}'"
+    $sshOutput = & $sshExe -o BatchMode=yes -o ConnectTimeout=5 seo-prod $dockerCmd 2>&1
+    $sshExitCode = $LASTEXITCODE
+
+    if ($sshExitCode -ne 0) {
+        Add-Finding "fail" "infra" "VPS seo-prod injoignable (ssh exit code $sshExitCode)"
+    } else {
+        $expectedContainers = @(
+            "prod-traefik", "prod-n8n", "prod-seo-directus", "prod-seo-agents",
+            "prod-seo-postgres", "prod-seo-redis", "prod-seo-qdrant", "prod-n8n-postgres",
+            "profile-api"
+        )
+
+        $runningContainers = @{}
+        foreach ($line in ($sshOutput -split "`n")) {
+            $trimmed = $line.Trim()
+            if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
+            try {
+                $obj = $trimmed | ConvertFrom-Json
+                $runningContainers[$obj.Names] = $obj
+            } catch {
+                continue
+            }
+        }
+
+        foreach ($name in $expectedContainers) {
+            if (-not $runningContainers.ContainsKey($name)) {
+                Add-Finding "fail" "infra" "$name : conteneur introuvable sur seo-prod-network"
+                continue
+            }
+            $c = $runningContainers[$name]
+            if ($c.State -ne "running") {
+                Add-Finding "fail" "infra" "$name : arrete (etat=$($c.State))"
+            } elseif ($c.Status -match "\(unhealthy\)") {
+                Add-Finding "warn" "infra" "$name : running mais unhealthy"
+            } else {
+                Add-Finding "pass" "infra" "$name : running ($($c.Status))"
+            }
+        }
+    }
 } catch {
     Add-Finding "fail" "infra" "Section infra : erreur inattendue ($($_.Exception.Message))"
 }
