@@ -1,4 +1,4 @@
-# doctor.ps1
+﻿# doctor.ps1
 # Preflight check unique pour l'ecosysteme Fadel OS : infra, MCP, completude .env, avancement backlogs.
 # Usage: & ".\scripts\ops\doctor.ps1"  (depuis ops-tools/)
 #    ou: make doctor
@@ -25,6 +25,61 @@ if (Test-Path $WorkspacesRoot) {
     Add-Finding "pass" "bootstrap" "Workspaces root resolu : $WorkspacesRoot"
 } else {
     Add-Finding "fail" "bootstrap" "Workspaces root introuvable : $WorkspacesRoot"
+}
+
+function Get-BacklogTableProgress {
+    param(
+        [string]$FilePath,
+        [string]$SectionHeader,
+        [string]$StatusColumnHeader = "Statut"
+    )
+
+    if (-not (Test-Path $FilePath)) {
+        return $null
+    }
+
+    $lines = Get-Content $FilePath -Encoding UTF8
+    $active = $false
+    $statusColIndex = -1
+    $done = 0
+    $total = 0
+
+    foreach ($line in $lines) {
+        if ($line.TrimEnd() -eq $SectionHeader) {
+            $active = $true
+            $statusColIndex = -1
+            continue
+        }
+        if ($active -and $line -match '^##\s') {
+            break
+        }
+        if (-not $active) { continue }
+        if ($line -notmatch '^\s*\|') { continue }
+
+        $cells = $line.Trim().Trim('|') -split '\|' | ForEach-Object { $_.Trim() }
+
+        if ($statusColIndex -eq -1) {
+            $idx = 0
+            foreach ($cell in $cells) {
+                if ($cell -eq $StatusColumnHeader) { $statusColIndex = $idx; break }
+                $idx++
+            }
+            continue
+        }
+
+        if ($cells[0] -match '^-+$') { continue }
+        if ($statusColIndex -ge $cells.Count) { continue }
+
+        $statusCell = $cells[$statusColIndex]
+        if ($statusCell -match '✅') {
+            $done++
+            $total++
+        } elseif ($statusCell -match '🔄|⬜|🔒') {
+            $total++
+        }
+    }
+
+    return [pscustomobject]@{ Done = $done; Total = $total }
 }
 
 # --- Section Infra ---
@@ -177,7 +232,59 @@ try {
 # --- Section Backlog ---
 Write-Host "`n--- Backlog ---" -ForegroundColor Yellow
 try {
-    # Remplie par Task 5
+    # Parseur A : cases a cocher markdown
+    $upskillingPath = Join-Path $WorkspacesRoot "my-curriculum\docs\UPSKILLING.md"
+    if (-not (Test-Path $upskillingPath)) {
+        Add-Finding "fail" "backlog" "UPSKILLING.md introuvable ($upskillingPath)"
+    } else {
+        $lines = Get-Content $upskillingPath -Encoding UTF8
+        $currentSection = $null
+        $sectionCounts = @{}
+        foreach ($line in $lines) {
+            if ($line -match '^##\s+(.+)$') {
+                $currentSection = $Matches[1].Trim()
+                if (-not $sectionCounts.ContainsKey($currentSection)) {
+                    $sectionCounts[$currentSection] = @{ done = 0; total = 0 }
+                }
+                continue
+            }
+            if (-not $currentSection) { continue }
+            if ($line -match '^\s*-\s\[x\]') {
+                $sectionCounts[$currentSection].done++
+                $sectionCounts[$currentSection].total++
+            } elseif ($line -match '^\s*-\s\[\s\]') {
+                $sectionCounts[$currentSection].total++
+            }
+        }
+        foreach ($section in $sectionCounts.Keys) {
+            $c = $sectionCounts[$section]
+            if ($c.total -eq 0) { continue }
+            Add-Finding "pass" "backlog" "UPSKILLING.md / $section : $($c.done)/$($c.total) complete"
+        }
+    }
+
+    # Parseur B : statuts en table, cible precisement sur une table par fichier
+    # NE PAS MODIFIER : doit matcher le titre exact du fichier source (contient un tiret cadratin d'origine)
+    $backlogMetaSectionHeader = "## Sprint S1 " + [char]0x2014 + " Mise en service harness (juillet 2026)"
+    $harnessBacklog = Join-Path $WorkspacesRoot "harness\BACKLOG.md"
+    $harnessResult = Get-BacklogTableProgress -FilePath $harnessBacklog -SectionHeader "## Vue priorisée (ordre d'exécution)"
+    if ($null -eq $harnessResult) {
+        Add-Finding "fail" "backlog" "harness/BACKLOG.md introuvable"
+    } elseif ($harnessResult.Total -eq 0) {
+        Add-Finding "warn" "backlog" "harness/BACKLOG.md : table 'Vue priorisée' introuvable ou vide"
+    } else {
+        Add-Finding "pass" "backlog" "harness/BACKLOG.md : $($harnessResult.Done)/$($harnessResult.Total) complete"
+    }
+
+    $metaBacklog = Join-Path $WorkspacesRoot "ops-tools\meta\BACKLOG-META.md"
+    $metaResult = Get-BacklogTableProgress -FilePath $metaBacklog -SectionHeader $backlogMetaSectionHeader
+    if ($null -eq $metaResult) {
+        Add-Finding "fail" "backlog" "ops-tools/meta/BACKLOG-META.md introuvable"
+    } elseif ($metaResult.Total -eq 0) {
+        Add-Finding "warn" "backlog" "BACKLOG-META.md : table Sprint S1 introuvable ou vide"
+    } else {
+        Add-Finding "pass" "backlog" "ops-tools/meta/BACKLOG-META.md : $($metaResult.Done)/$($metaResult.Total) complete"
+    }
 } catch {
     Add-Finding "fail" "backlog" "Section backlog : erreur inattendue ($($_.Exception.Message))"
 }
