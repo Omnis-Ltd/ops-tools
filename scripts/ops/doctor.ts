@@ -7,6 +7,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { z } from "zod";
+import { $ } from "bun";
 
 // --- Schema du manifeste ---
 
@@ -122,7 +123,49 @@ const colors = {
 // --- Sections (squelette, remplies par les taches suivantes) ---
 
 async function checkInfra(config: FadelConfig, workspacesRoot: string): Promise<void> {
-  // Remplie par Task 2
+  const sshExe = "C:/Windows/System32/OpenSSH/ssh.exe";
+  const dockerCmd = `docker ps --filter network=${config.infra.dockerNetwork} --format '{{json .}}'`;
+
+  let sshOutput: string;
+  try {
+    sshOutput = await $`${sshExe} -o BatchMode=yes -o ConnectTimeout=5 ${config.infra.sshHost} ${dockerCmd}`.text();
+  } catch {
+    addFinding("fail", "infra", `VPS ${config.infra.sshHost} injoignable`);
+    return;
+  }
+
+  interface DockerPsEntry {
+    Names: string;
+    State: string;
+    Status: string;
+  }
+
+  const runningContainers = new Map<string, DockerPsEntry>();
+  for (const rawLine of sshOutput.split("\n")) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+    try {
+      const obj = JSON.parse(trimmed) as DockerPsEntry;
+      runningContainers.set(obj.Names, obj);
+    } catch {
+      continue;
+    }
+  }
+
+  for (const name of config.infra.expectedContainers) {
+    const container = runningContainers.get(name);
+    if (!container) {
+      addFinding("fail", "infra", `${name} : conteneur introuvable sur ${config.infra.dockerNetwork}`);
+      continue;
+    }
+    if (container.State !== "running") {
+      addFinding("fail", "infra", `${name} : arrete (etat=${container.State})`);
+    } else if (container.Status.includes("(unhealthy)")) {
+      addFinding("warn", "infra", `${name} : running mais unhealthy`);
+    } else {
+      addFinding("pass", "infra", `${name} : running (${container.Status})`);
+    }
+  }
 }
 
 async function checkMcp(config: FadelConfig, workspacesRoot: string): Promise<void> {
