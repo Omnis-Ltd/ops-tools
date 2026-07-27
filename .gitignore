@@ -20,6 +20,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Bun/Node
+node_modules/
+
 # OS
 .DS_Store
 Thumbs.db
