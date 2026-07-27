@@ -136,6 +136,15 @@ function listFilesRecursive(dir: string): string[] {
   return results;
 }
 
+export function extractEnvKeys(content: string): string[] {
+  const keys: string[] = [];
+  for (const line of content.split("\n")) {
+    const match = line.match(/^([A-Z0-9_]+)=/);
+    if (match) keys.push(match[1]);
+  }
+  return keys;
+}
+
 async function checkInfra(config: FadelConfig, workspacesRoot: string): Promise<void> {
   const sshExe = "C:/Windows/System32/OpenSSH/ssh.exe";
   const dockerCmd = `docker ps --filter network=${config.infra.dockerNetwork} --format '{{json .}}'`;
@@ -244,7 +253,34 @@ async function checkMcp(config: FadelConfig, workspacesRoot: string): Promise<vo
 }
 
 async function checkEnv(config: FadelConfig, workspacesRoot: string): Promise<void> {
-  // Remplie par Task 4
+  for (const target of config.env) {
+    const repoPath = path.join(workspacesRoot, ...target.path.split("/"));
+    const examplePath = path.join(repoPath, ".env.example");
+    const envPath = path.join(repoPath, ".env");
+
+    if (!fs.existsSync(examplePath)) {
+      addFinding("warn", "env", `${target.name} : .env.example absent`);
+      continue;
+    }
+
+    const exampleKeys = extractEnvKeys(fs.readFileSync(examplePath, "utf8"));
+
+    if (!fs.existsSync(envPath)) {
+      addFinding("fail", "env", `${target.name} : .env absent (${exampleKeys.length} cles attendues)`);
+      continue;
+    }
+
+    const envKeys = new Set(extractEnvKeys(fs.readFileSync(envPath, "utf8")));
+    const missingKeys = exampleKeys.filter((k) => !envKeys.has(k));
+
+    if (missingKeys.length === 0) {
+      addFinding("pass", "env", `${target.name} : .env complet (${exampleKeys.length} cles)`);
+    } else {
+      for (const key of missingKeys) {
+        addFinding("warn", "env", `${target.name} : cle manquante dans .env : ${key}`);
+      }
+    }
+  }
 }
 
 async function checkBacklog(config: FadelConfig, workspacesRoot: string): Promise<void> {

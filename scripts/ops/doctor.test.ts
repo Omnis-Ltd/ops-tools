@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FadelConfigSchema, formatTimestamp } from "./doctor";
+import { FadelConfigSchema, formatTimestamp, extractEnvKeys } from "./doctor";
 
 describe("FadelConfigSchema", () => {
   const validConfig = {
@@ -62,5 +62,18 @@ describe("formatTimestamp", () => {
   test("formats a UTC date as yyyyMMddTHHmmssZ", () => {
     const date = new Date(Date.UTC(2026, 6, 24, 8, 59, 29));
     expect(formatTimestamp(date)).toBe("20260724T085929Z");
+  });
+});
+
+describe("extractEnvKeys", () => {
+  test("extracts key names, ignoring values and comments", () => {
+    const content = ["# comment", "NOTION_API_KEY=secret_abc123", "", "PORT=3000", "not a valid line"].join(
+      "\n"
+    );
+    expect(extractEnvKeys(content)).toEqual(["NOTION_API_KEY", "PORT"]);
+  });
+
+  test("returns an empty array for content with no valid keys", () => {
+    expect(extractEnvKeys("# just a comment\n")).toEqual([]);
   });
 });
