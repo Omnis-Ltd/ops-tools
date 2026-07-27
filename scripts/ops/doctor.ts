@@ -149,7 +149,7 @@ export function parseChecklist(content: string): Map<string, { done: number; tot
   const sections = new Map<string, { done: number; total: number }>();
   let currentSection: string | null = null;
 
-  for (const line of content.split("\n")) {
+  for (const line of content.replace(/\r\n/g, "\n").split("\n")) {
     const headerMatch = line.match(/^##\s+(.+)$/);
     if (headerMatch) {
       currentSection = headerMatch[1].trim();

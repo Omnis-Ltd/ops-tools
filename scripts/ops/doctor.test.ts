@@ -99,6 +99,12 @@ describe("parseChecklist", () => {
     expect(result.has("Project A")).toBe(true);
     expect(result.get("Project A")).toEqual({ done: 1, total: 1 });
   });
+
+  test("handles CRLF line endings in section headers", () => {
+    const content = "## Project A\r\n- [x] done task\r\n- [ ] pending task\r\n";
+    const result = parseChecklist(content);
+    expect(result.get("Project A")).toEqual({ done: 1, total: 2 });
+  });
 });
 
 describe("parseBacklogTable", () => {
