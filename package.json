@@ -1,9 +1,25 @@
 {
+  "name": "@fdiene/ops-tools",
+  "version": "0.1.0",
+  "packageManager": "bun@1.3.14",
+  "type": "module",
+  "bin": {
+    "fadel-ops": "scripts/ops/doctor.ts"
+  },
+  "scripts": {
+    "doctor": "bun scripts/ops/doctor.ts",
+    "build:doctor": "bun build --compile --outfile dist/fadel-ops scripts/ops/doctor.ts",
+    "test": "bun test"
+  },
   "dependencies": {
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
     "@types/node": "^26.1.1",
     "typescript": "^7.0.2"
+  },
+  "engines": {
+    "bun": ">=1.3.14"
   }
 }

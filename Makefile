@@ -19,7 +19,7 @@ normalize-eol-apply:
 	./scripts/maintenance/normalize-eol-batch.sh --apply --renormalize --commit --skip-dirty
 
 doctor:
-	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/ops/doctor.ps1
+	@dist/fadel-ops.exe
 
 .PHONY: maintenance-normalize-eol-dry maintenance-normalize-eol-apply
 
