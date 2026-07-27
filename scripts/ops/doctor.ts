@@ -122,6 +122,20 @@ const colors = {
 
 // --- Sections (squelette, remplies par les taches suivantes) ---
 
+function listFilesRecursive(dir: string): string[] {
+  if (!fs.existsSync(dir)) return [];
+  const results: string[] = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...listFilesRecursive(fullPath));
+    } else {
+      results.push(fullPath);
+    }
+  }
+  return results;
+}
+
 async function checkInfra(config: FadelConfig, workspacesRoot: string): Promise<void> {
   const sshExe = "C:/Windows/System32/OpenSSH/ssh.exe";
   const dockerCmd = `docker ps --filter network=${config.infra.dockerNetwork} --format '{{json .}}'`;
@@ -169,7 +183,64 @@ async function checkInfra(config: FadelConfig, workspacesRoot: string): Promise<
 }
 
 async function checkMcp(config: FadelConfig, workspacesRoot: string): Promise<void> {
-  // Remplie par Task 3
+  for (const server of config.mcp) {
+    const serverRoot = path.join(workspacesRoot, ...server.serverRoot.split("/"));
+    const distIndex = path.join(serverRoot, "dist", "index.js");
+    const srcDir = path.join(serverRoot, "src");
+
+    if (!fs.existsSync(distIndex)) {
+      addFinding("warn", "mcp", `${server.name} : dist/index.js absent (build jamais lance)`);
+    } else {
+      const distTime = fs.statSync(distIndex).mtimeMs;
+      const srcFiles = listFilesRecursive(srcDir);
+      const newestSrcTime =
+        srcFiles.length > 0 ? Math.max(...srcFiles.map((f) => fs.statSync(f).mtimeMs)) : null;
+      if (newestSrcTime !== null && newestSrcTime > distTime) {
+        addFinding("warn", "mcp", `${server.name} : build obsolete (dist/ plus ancien que src/)`);
+      } else {
+        addFinding("pass", "mcp", `${server.name} : build a jour (dist/index.js)`);
+      }
+    }
+
+    const cursorConfigPath = path.join(workspacesRoot, ...server.cursorConfigPath.split("/"));
+    if (fs.existsSync(cursorConfigPath)) {
+      const mcpJson = JSON.parse(fs.readFileSync(cursorConfigPath, "utf8"));
+      const serverEntry = mcpJson.mcpServers?.[server.serverKey];
+      const referencedPath: string | undefined = serverEntry?.args?.find((a: string) =>
+        /index\.js$/.test(a)
+      );
+      if (referencedPath && fs.existsSync(referencedPath)) {
+        addFinding(
+          "pass",
+          "mcp",
+          `${server.name} : mcp.json pointe vers un dist/index.js existant (${referencedPath})`
+        );
+      } else if (referencedPath) {
+        addFinding("warn", "mcp", `${server.name} : mcp.json pointe vers un chemin introuvable (${referencedPath})`);
+      } else {
+        addFinding(
+          "warn",
+          "mcp",
+          `${server.name} : mcp.json ne reference pas index.js pour le serveur ${server.serverKey}`
+        );
+      }
+    } else {
+      addFinding("warn", "mcp", `${server.cursorConfigPath} absent`);
+    }
+
+    let lastActivity: string | null = null;
+    try {
+      const out = await $`git -C ${toShellPath(serverRoot)} log -1 --format=%cd -- .`.text();
+      lastActivity = out.trim() || null;
+    } catch {
+      lastActivity = null;
+    }
+    if (lastActivity) {
+      addFinding("pass", "mcp", `${server.name} : derniere activite ${lastActivity}`);
+    } else {
+      addFinding("warn", "mcp", `${server.name} : aucun historique git trouve pour ${server.serverRoot}`);
+    }
+  }
 }
 
 async function checkEnv(config: FadelConfig, workspacesRoot: string): Promise<void> {
