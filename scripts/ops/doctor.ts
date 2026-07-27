@@ -371,9 +371,14 @@ async function checkBacklog(config: FadelConfig, workspacesRoot: string): Promis
 
     if (entry.type === "checklist") {
       const sections = parseChecklist(content);
+      let anyFinding = false;
       for (const [section, counts] of sections) {
         if (counts.total === 0) continue;
         addFinding("pass", "backlog", `${entry.name} / ${section} : ${counts.done}/${counts.total} complete`);
+        anyFinding = true;
+      }
+      if (!anyFinding) {
+        addFinding("warn", "backlog", `${entry.name} : aucune section/checklist detectee`);
       }
     } else {
       const result = parseBacklogTable(content, entry.sectionHeader, entry.statusColumnHeader);

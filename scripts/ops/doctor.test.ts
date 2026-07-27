@@ -105,6 +105,11 @@ describe("parseChecklist", () => {
     const result = parseChecklist(content);
     expect(result.get("Project A")).toEqual({ done: 1, total: 2 });
   });
+
+  test("returns an empty map for content with no section headers", () => {
+    const result = parseChecklist("- [x] orphan checkbox with no section\n");
+    expect(result.size).toBe(0);
+  });
 });
 
 describe("parseBacklogTable", () => {

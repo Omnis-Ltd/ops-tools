@@ -18,8 +18,11 @@ normalize-eol-apply:
 	@WORKSPACES_ROOT="$(HOME)/git/Workspaces" \
 	./scripts/maintenance/normalize-eol-batch.sh --apply --renormalize --commit --skip-dirty
 
-doctor:
+doctor: dist/fadel-ops.exe
 	@dist/fadel-ops.exe
+
+dist/fadel-ops.exe: scripts/ops/doctor.ts
+	@bun run build:doctor
 
 .PHONY: maintenance-normalize-eol-dry maintenance-normalize-eol-apply
 
