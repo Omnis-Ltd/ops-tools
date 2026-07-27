@@ -145,6 +145,81 @@ export function extractEnvKeys(content: string): string[] {
   return keys;
 }
 
+export function parseChecklist(content: string): Map<string, { done: number; total: number }> {
+  const sections = new Map<string, { done: number; total: number }>();
+  let currentSection: string | null = null;
+
+  for (const line of content.split("\n")) {
+    const headerMatch = line.match(/^##\s+(.+)$/);
+    if (headerMatch) {
+      currentSection = headerMatch[1].trim();
+      if (!sections.has(currentSection)) {
+        sections.set(currentSection, { done: 0, total: 0 });
+      }
+      continue;
+    }
+    if (!currentSection) continue;
+    const counts = sections.get(currentSection)!;
+    if (/^\s*-\s\[x\]/.test(line)) {
+      counts.done++;
+      counts.total++;
+    } else if (/^\s*-\s\[\s\]/.test(line)) {
+      counts.total++;
+    }
+  }
+
+  return sections;
+}
+
+export function parseBacklogTable(
+  content: string,
+  sectionHeader: string,
+  statusColumnHeader = "Statut"
+): { done: number; total: number } {
+  const lines = content.split("\n");
+  let active = false;
+  let statusColIndex = -1;
+  let done = 0;
+  let total = 0;
+
+  for (const line of lines) {
+    if (line.trimEnd() === sectionHeader) {
+      active = true;
+      statusColIndex = -1;
+      continue;
+    }
+    if (active && /^##\s/.test(line)) {
+      break;
+    }
+    if (!active) continue;
+    if (!/^\s*\|/.test(line)) continue;
+
+    const cells = line
+      .trim()
+      .replace(/^\||\|$/g, "")
+      .split("|")
+      .map((c) => c.trim());
+
+    if (statusColIndex === -1) {
+      statusColIndex = cells.indexOf(statusColumnHeader);
+      continue;
+    }
+
+    if (/^-+$/.test(cells[0])) continue;
+    if (statusColIndex >= cells.length) continue;
+
+    const statusCell = cells[statusColIndex];
+    if (statusCell.includes("✅")) {
+      done++;
+      total++;
+    } else if (/🔄|⬜|🔒/.test(statusCell)) {
+      total++;
+    }
+  }
+
+  return { done, total };
+}
+
 async function checkInfra(config: FadelConfig, workspacesRoot: string): Promise<void> {
   const sshExe = "C:/Windows/System32/OpenSSH/ssh.exe";
   const dockerCmd = `docker ps --filter network=${config.infra.dockerNetwork} --format '{{json .}}'`;
@@ -284,7 +359,31 @@ async function checkEnv(config: FadelConfig, workspacesRoot: string): Promise<vo
 }
 
 async function checkBacklog(config: FadelConfig, workspacesRoot: string): Promise<void> {
-  // Remplie par Task 5
+  for (const entry of config.backlog) {
+    const filePath = path.join(workspacesRoot, ...entry.path.split("/"));
+
+    if (!fs.existsSync(filePath)) {
+      addFinding("fail", "backlog", `${entry.name} introuvable (${filePath})`);
+      continue;
+    }
+
+    const content = fs.readFileSync(filePath, "utf8");
+
+    if (entry.type === "checklist") {
+      const sections = parseChecklist(content);
+      for (const [section, counts] of sections) {
+        if (counts.total === 0) continue;
+        addFinding("pass", "backlog", `${entry.name} / ${section} : ${counts.done}/${counts.total} complete`);
+      }
+    } else {
+      const result = parseBacklogTable(content, entry.sectionHeader, entry.statusColumnHeader);
+      if (result.total === 0) {
+        addFinding("warn", "backlog", `${entry.name} : table introuvable ou vide`);
+      } else {
+        addFinding("pass", "backlog", `${entry.name} : ${result.done}/${result.total} complete`);
+      }
+    }
+  }
 }
 
 // --- Orchestration ---

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { FadelConfigSchema, formatTimestamp, extractEnvKeys } from "./doctor";
+import { FadelConfigSchema, formatTimestamp, extractEnvKeys, parseChecklist, parseBacklogTable } from "./doctor";
 
 describe("FadelConfigSchema", () => {
   const validConfig = {
@@ -75,5 +75,63 @@ describe("extractEnvKeys", () => {
 
   test("returns an empty array for content with no valid keys", () => {
     expect(extractEnvKeys("# just a comment\n")).toEqual([]);
+  });
+});
+
+describe("parseChecklist", () => {
+  test("counts checked and unchecked items per section", () => {
+    const content = [
+      "## Project A",
+      "- [x] done task",
+      "- [ ] pending task",
+      "- [x] another done",
+      "## Project B",
+      "- [ ] only pending",
+    ].join("\n");
+    const result = parseChecklist(content);
+    expect(result.get("Project A")).toEqual({ done: 2, total: 3 });
+    expect(result.get("Project B")).toEqual({ done: 0, total: 1 });
+  });
+
+  test("ignores lines before the first section header", () => {
+    const content = "- [x] orphan\n## Project A\n- [x] real";
+    const result = parseChecklist(content);
+    expect(result.has("Project A")).toBe(true);
+    expect(result.get("Project A")).toEqual({ done: 1, total: 1 });
+  });
+});
+
+describe("parseBacklogTable", () => {
+  const fixture = [
+    "## Other Section",
+    "| # | Statut |",
+    "|---|---|",
+    "| 1 | ✅ |",
+    "## Vue priorisee",
+    "| # | ID | Statut |",
+    "|---|---|---|",
+    "| 1 | A | ✅ |",
+    "| 2 | B | 🔄 |",
+    "| 3 | C | ⬜ |",
+    "## Next Section",
+    "| # | Statut |",
+    "|---|---|",
+    "| 1 | ✅ |",
+  ].join("\n");
+
+  test("counts only the table under the exact target section header", () => {
+    const result = parseBacklogTable(fixture, "## Vue priorisee");
+    expect(result).toEqual({ done: 1, total: 3 });
+  });
+
+  test("returns done=0 total=0 when the section header is not found", () => {
+    const result = parseBacklogTable(fixture, "## Nonexistent Section");
+    expect(result).toEqual({ done: 0, total: 0 });
+  });
+
+  test("returns done=0 total=0 when the Statut column is not present in the table", () => {
+    const content = "## Target\n| # | Other |\n|---|---|\n| 1 | x |";
+    const result = parseBacklogTable(content, "## Target");
+    expect(result).toEqual({ done: 0, total: 0 });
   });
 });
