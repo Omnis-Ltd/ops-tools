@@ -210,6 +210,33 @@ Custom Claude Code commands in `.claude/commands/`:
 
 ---
 
+## ops doctor
+
+Preflight check unique pour l'ecosysteme (infra VPS/Docker, statut MCP, completude .env, avancement backlogs).
+
+### Deux canaux de distribution
+
+| Canal | Usage | Prerequis | Commande |
+|---|---|---|---|
+| **Binaire compile** | Usage interne quotidien | Aucun (binaire autonome) | `make doctor` |
+| **Package npm** | Ecosysteme JS externe | [Bun](https://bun.sh) installe sur la machine | `npm install -g @fdiene/ops-tools` puis `fadel-ops` |
+
+Le canal npm ne remplace pas le binaire compile : le shim genere par npm invoque `bun` directement au runtime (`bun` n'est pas une dependance npm resolue automatiquement). Sans `bun` installe, `fadel-ops` installe via npm ne demarre pas.
+
+### Configuration
+
+Les deux canaux lisent `fadel-os.config.json` a la racine du monorepo cible, localisee via la variable d'environnement `WORKSPACES_ROOT` (repli : `~/git/Workspaces`).
+
+## Release (processus manuel)
+
+1. Mettre a jour `CHANGELOG.md` : nouvelle section `## [X.Y.Z] - AAAA-MM-JJ` avec les changements notables.
+2. Mettre a jour `"version"` dans `package.json` (semver manuel : patch/minor/major selon le changement).
+3. `npm pack` et inspecter le contenu du tarball genere (voir section Security ci-dessous pour la liste exacte attendue).
+4. `git commit` du bump de version + changelog, `git tag vX.Y.Z` (tag local, aucun workflow CI ne s'y declenche).
+5. `npm publish --access public`.
+
+---
+
 ## Security
 
 - **Never commit secrets** : `.env` files are gitignored (`.env`, `.env.*`, `*.env`, minus explicit allowlist entries in `.gitignore`)
