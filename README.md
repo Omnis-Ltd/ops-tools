@@ -108,6 +108,7 @@ export PYTHON_BIN=python                         # or python3
 | `make normalize-eol-apply`      | Apply `.gitattributes`, renormalize, commit (skips dirty repos) |
 | `make maintenance-normalize-eol-dry`   | Full maintenance run (dry) with logs/reports |
 | `make maintenance-normalize-eol-apply` | Full maintenance run (apply) with logs/reports/Notion push |
+| `make doctor` | Preflight check ecosysteme (infra/mcp/env/backlogs) |
 
 ### Scripts
 
@@ -218,7 +219,7 @@ Preflight check unique pour l'ecosysteme (infra VPS/Docker, statut MCP, completu
 
 | Canal | Usage | Prerequis | Commande |
 |---|---|---|---|
-| **Binaire compile** | Usage interne quotidien | Aucun (binaire autonome) | `make doctor` |
+| **Binaire compile** | Usage interne quotidien | Aucun a l'execution (binaire autonome) ; build initial : Bun + Make | `make doctor` |
 | **Package npm** | Ecosysteme JS externe | [Bun](https://bun.sh) installe sur la machine | `npm install -g @fdiene/ops-tools` puis `fadel-ops` |
 
 Le canal npm ne remplace pas le binaire compile : le shim genere par npm invoque `bun` directement au runtime (`bun` n'est pas une dependance npm resolue automatiquement). Sans `bun` installe, `fadel-ops` installe via npm ne demarre pas.

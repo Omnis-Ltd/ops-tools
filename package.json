@@ -1,7 +1,18 @@
 {
   "name": "@fdiene/ops-tools",
   "version": "0.1.0",
+  "description": "Preflight check et outils d'exploitation pour l'ecosysteme Fadel OS (infra, MCP, env, backlogs)",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Omnis-Ltd/ops-tools.git"
+  },
+  "homepage": "https://github.com/Omnis-Ltd/ops-tools#readme",
+  "bugs": {
+    "url": "https://github.com/Omnis-Ltd/ops-tools/issues"
+  },
+  "keywords": ["cli", "devops", "preflight", "monorepo", "bun"],
+  "author": "Fadel Diene",
   "packageManager": "bun@1.3.14",
   "type": "module",
   "bin": {
