@@ -231,7 +231,7 @@ Les deux canaux lisent `fadel-os.config.json` a la racine du monorepo cible, loc
 
 1. Mettre a jour `CHANGELOG.md` : nouvelle section `## [X.Y.Z] - AAAA-MM-JJ` avec les changements notables.
 2. Mettre a jour `"version"` dans `package.json` (semver manuel : patch/minor/major selon le changement).
-3. `npm pack` et inspecter le contenu du tarball genere (voir section Security ci-dessous pour la liste exacte attendue).
+3. `npm pack` et inspecter le contenu du tarball genere : doit lister exactement `package.json`, `README.md`, `LICENSE`, `scripts/ops/doctor.ts`, `tsconfig.json` (le champ `files` ci-dessus definit `scripts/ops/doctor.ts` et `tsconfig.json` ; les trois autres sont toujours inclus par npm).
 4. `git commit` du bump de version + changelog, `git tag vX.Y.Z` (tag local, aucun workflow CI ne s'y declenche).
 5. `npm publish --access public`.
 
