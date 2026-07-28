@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 // doctor.ts
 // Preflight check unique pour l'ecosysteme Fadel OS : infra, MCP, completude .env, avancement backlogs.
 // Usage : bun scripts/ops/doctor.ts   (depuis ops-tools/)
