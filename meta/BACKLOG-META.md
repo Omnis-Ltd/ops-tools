@@ -5,7 +5,7 @@ Backlog transverse à tous les projets (SEOmnix, FluxGuard, Hermes, OpenClaw).
 **Backlog d'exécution priorisé :** [`harness/BACKLOG.md`](../harness/BACKLOG.md) ← source de vérité sprint  
 **Règles agent :** [`harness/RULES.md`](../harness/RULES.md)
 
-Dernière mise à jour : 2026-07-03
+Dernière mise à jour : 2026-08-23
 
 ---
 
@@ -153,13 +153,33 @@ Garantit que le repo git = source de vérité n8n en permanence.
 ```typescript
 // harness/src/llm-router.ts
 function routeLLM(task: Task): LLMEndpoint {
-  if (task.sensitivity === 'confidential')  return vps('deepseek-r1:8b')    // Safran/FluxGuard
-  if (task.type === 'routing')              return api('claude-haiku-4-5')   // classification cheap
-  if (task.type === 'review')               return local('ollama/mistral')   // reviewer gratuit
-  if (task.type === 'generation')           return api('gemini-2.5-flash')   // batch contenu
-  return api('claude-sonnet-5')                                              // analyse complexe
+  if (task.sensitivity === 'confidential')  return vps('deepseek-r1:8b')      // Safran/FluxGuard — données non exportables
+  if (task.type === 'judge' && task.sensitivity === 'public')
+                                            return api('gemini-2.5-flash')     // juge SEOmnix — contenu public, coût minimal
+  if (task.type === 'judge')               return api('claude-haiku-4-5')     // juge données internes — provider US
+  if (task.type === 'routing')             return api('claude-haiku-4-5')     // classification cheap
+  if (task.type === 'review')             return local('ollama/mistral')      // reviewer gratuit
+  if (task.type === 'generation')         return api('gemini-2.5-flash')      // batch contenu
+  return api('claude-sonnet-5')                                               // analyse complexe
 }
 ```
+
+**Règle de sensibilité pour modèles chinois :**
+- `sensitivity=public` : contenu public (articles SEO, code open-source) → modèles open mid-tier autorisés (Gemini, DeepSeek-V3, Qwen)
+- `sensitivity=internal` : données business non publiées → provider US uniquement
+- `sensitivity=confidential` : données client/contractuelles (FluxGuard/Safran) → VPS on-prem exclusivement
+
+**Cas d'usage pilotes → harness.route() :**
+
+| Projet | Fichier | task.type | sensitivity | Modèle attendu |
+|---|---|---|---|---|
+| SEOmnix evaluator | `ai-agents-core/src/evaluator.py` | `judge` | `public` | Gemini 2.5 Flash |
+| SEOmnix pipeline | `ai-agents-core/src/pipeline.py` | `generation` | `public` | Gemini 2.5 Flash |
+| FluxGuard analyse | à définir | `analysis` | `confidential` | VPS DeepSeek R1 |
+
+**Transition evaluator.py :**
+Aujourd'hui `evaluator.py` hard-code `claude-haiku-3` → à remplacer par `harness.route(task="judge", sensitivity="public")`.
+Rustine immédiate acceptable : passer à `claude-haiku-4-5` en attendant que l'interface harness soit stable.
 
 ### Intelligent Tool Selection (anti-34k tokens)
 
@@ -280,8 +300,9 @@ skills.sh → Context7 → US framing → lmfit (si quanti) → open mid-tier �
 |---|---|---|
 | FluxGuard (Safran data) | DeepSeek R1 VPS | Données non exportables |
 | Agent reviewer GROWTH-1 | Ollama local | Gratuit, latence acceptable |
-| Routing superviseur harness | Claude Haiku | Pas de puissance nécessaire, juste tri |
-| Articles SEOmnix | Gemini 2.5 Flash | 0.12$/article validé |
+| Routing superviseur harness | Claude Haiku 4.5 | Pas de puissance nécessaire, juste tri |
+| Articles SEOmnix (génération) | Gemini 2.5 Flash | 0.12$/article validé |
+| Juge SEOmnix (evaluator.py) | Gemini 2.5 Flash | contenu public → open mid-tier autorisé |
 | Analyse archi FluxGuard | Claude Sonnet 5 | Raisonnement complexe |
 | Batch nuit | DeepSeek VPS | Toujours allumé, zéro coût marginal |
 
