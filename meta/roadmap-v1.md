@@ -46,6 +46,23 @@ Sources vérifiées avant rédaction (pas d'invention) :
 
 **Dette à purger :** le mélange Python/PowerShell non inventorié est la dette elle-même. La passe gitleaks + purge d'historique déjà en P0 du backlog est la bonne priorité — ne la contourne pas pour aller plus vite vers commander.js.
 
+<!-- START ops-rotate (2026-10-16) -->
+#### Prochaine étape demandée (2026-10-16) : `ops rotate` (rotation des secrets)
+
+**Statut :** à concevoir (brainstorming puis spec dans `docs/superpowers/specs/`, comme `ops secops`), pas encore de plan. Position à arbitrer par l'owner face à `ops secops` et `ops deploy`.
+
+**Origine (incident réel, 2026-10-14 → 16) :** une clé OpenAI exposée en clair (config Continue) vivait à 5 endroits sans inventaire : `AI_agents/_shared/.env_global`, `AI_agents/seomnix/ai-agents-core/.env`, OmniRoute local, `/opt/seo-empire/.env` sur `seo-prod` (lisible par tous, `644`) et 2 conteneurs prod (`prod-n8n`, `prod-seo-agents`). Retrouver ces emplacements et les mettre à jour a pris des heures, à la main ; l'auto mode de Claude a (à juste titre) refusé d'écrire les secrets à la place de l'owner.
+
+**Exigences de l'owner :**
+1. **Commande réservée à l'owner, en CLI interactif uniquement** : `ops rotate` refuse de tourner sans TTY (agent, CI, script), demande une confirmation tapée, ne lit jamais de secret en argument (saisie masquée ou lecture depuis le fichier source local), n'affiche jamais une valeur (au plus les 4 derniers caractères).
+2. **Choix de la catégorie à faire tourner** : `ops rotate` sans argument propose la liste ; `ops rotate <catégorie>` cible directement. Catégories pressenties : fournisseurs LLM (OpenAI, Anthropic, Gemini, DeepSeek, Moonshot, Perplexity, Cheaper Inference), clés OmniRoute locales, secrets applicatifs `seo-prod` (Directus, `WEBHOOK_SECRET`, bot Telegram, Resend), clés SSH, GitHub (PAT, deploy keys, secrets Actions), Tailscale (auth keys, clés API), token npm.
+3. **Alerte avant échéance** : un registre de métadonnées (sans aucune valeur : nom, catégorie, emplacements, date de dernière rotation, empreinte courte) + une politique par catégorie (ex. 90 jours LLM, 180 jours SSH, expiration réelle quand le fournisseur la donne : PAT GitHub, clés Tailscale). `ops doctor` affiche une section « à faire tourner sous N jours » ; notification optionnelle via le bot Telegram d'alerte déjà en place.
+
+**Déroulé cible par secret (issu de l'incident) :** inventaire des emplacements par empreinte (jamais par valeur) → lien vers la page du fournisseur pour créer la nouvelle clé → saisie masquée → sauvegarde `chmod 600` de chaque fichier touché → propagation (local, OmniRoute via `import-env-keys.ps1`, `.env` VPS) → recréation des seuls conteneurs concernés (`docker compose -p <projet> -f <fichier> up -d --no-deps <services>` après un `--dry-run` qui vérifie l'absence de dérive ; **`docker compose restart` ne relit pas le `.env`**) → vérification (empreinte dans les conteneurs, santé) → rappel de supprimer l'ancienne clé chez le fournisseur → date de rotation écrite au registre.
+
+**Garde-fou :** les agents IA peuvent préparer l'inventaire et le `--dry-run`, jamais exécuter la rotation.
+<!-- END ops-rotate -->
+
 ---
 
 ## AXE 2 — Design system des nouveaux projets
