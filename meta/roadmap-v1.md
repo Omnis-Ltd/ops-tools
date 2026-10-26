@@ -63,6 +63,28 @@ Sources vérifiées avant rédaction (pas d'invention) :
 **Garde-fou :** les agents IA peuvent préparer l'inventaire et le `--dry-run`, jamais exécuter la rotation.
 <!-- END ops-rotate -->
 
+<!-- START ops-maintenance-calendar (2026-10-26) -->
+#### Vision demandée (2026-10-26) : calendrier de maintenance avec validation humaine (HITL)
+
+**Statut :** à concevoir (brainstorming puis spec dans `docs/superpowers/specs/`), pas encore de plan.
+
+**Origine (incident réel, 2026-10-26) :** au retour de congés, deux vagues de CVE publiées pendant l'absence ont été découvertes 5 jours après coup : PHP (CVE-2026-109618/109619, critiques, aucun PHP dans le parc) et Node.js du 21 octobre (10 CVE dont CVE-2026-111497, écriture hors limites dans le décodeur Brotli, RCE possible). n8n prod corrigé le jour même (2.28.6 → 2.44.7) ; Directus en palliatif (Node 22.23.4 injecté dans l'image 11.17.4).
+
+**Idée de l'owner :** un calendrier de maintenance qui déclenche des passes planifiées (veille CVE sur les runtimes et images réellement déployés, `ops doctor`, `ops secops`, échéances `ops rotate`, montées de version prévues) et envoie chaque action à valider par le meilleur canal : mail, ou un Slack dédié à créer. Canal existant à évaluer d'abord : le bot Telegram d'alerte déjà en prod (`MY_TELEGRAM_CHAT_ID`).
+
+**Garde-fou :** même règle que `ops rotate` : l'automate prépare (inventaire, écart de versions, breaking changes, commandes, sauvegarde) ; l'humain valide et exécute en prod. Les lectures prod par un agent sont aujourd'hui refusées par l'auto mode : l'owner les lance lui-même, ou les autorise explicitement.
+
+**Leçons de l'incident à intégrer :**
+- Mesurer, ne pas déduire : l'image n8n 2.44.7 publiée tourne sur Node 26.12.1 alors que son Dockerfile source indique 24.22.1. Toujours lire `node -v` dans le conteneur.
+- Le `docker-compose.yml` du VPS (`/opt/seo-empire`) n'est pas un checkout git d'`infra-prod` : détecter la dérive repo/VPS avant chaque passe.
+
+**Premier élément du calendrier : Directus 11.17.4 → v12** (palliatif `infra-prod/directus/Dockerfile` en place depuis le 2026-10-26).
+- Pourquoi reporté : version majeure (v12.5.1 publiée le 2026-10-23, runtime Node 26), à faire hors urgence.
+- Préalables : lire les breaking changes 11 → 12, vérifier extensions et flows Directus, dump `seo-postgres`, répétition sur `infra-local` (`docker-compose.seo.yml` pinne aussi 11.17.4).
+- Créneau : hors des exécutions planifiées des workflows n8n qui écrivent dans Directus (horaires à relever).
+- Échéance : le palliatif doit être reconstruit à chaque release de sécurité Node 22, et Node 22 arrive en fin de vie le 2027-04-30 : migrer bien avant.
+<!-- END ops-maintenance-calendar -->
+
 ---
 
 ## AXE 2 — Design system des nouveaux projets
